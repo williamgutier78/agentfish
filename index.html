@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentFish | $FISH</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cyan: #00f5d4;
+            --purple: #9b4dca;
+            --magenta: #ff00ff;
+            --deep-blue: #0a0a1a;
+            --abyss: #050510;
+            --terminal-green: #00ff41;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--abyss);
+            color: var(--cyan);
+            font-family: 'Share Tech Mono', monospace;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Scanlines overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.15),
+                rgba(0, 0, 0, 0.15) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* CRT flicker */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 245, 212, 0.03);
+            pointer-events: none;
+            z-index: 999;
+            animation: flicker 0.15s infinite;
+        }
+
+        @keyframes flicker {
+            0%, 100% { opacity: 0.03; }
+            50% { opacity: 0.05; }
+        }
+
+        /* Matrix rain canvas */
+        #matrix-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+        }
+
+        /* Floating bubbles */
+        .bubble {
+            position: fixed;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(0, 245, 212, 0.3), rgba(155, 77, 202, 0.1));
+            border: 1px solid rgba(0, 245, 212, 0.2);
+            animation: float-up linear infinite;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        @keyframes float-up {
+            0% {
+                transform: translateY(100vh) scale(1);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) scale(0.5);
+                opacity: 0;
+            }
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(to bottom, rgba(5, 5, 16, 0.9), transparent);
+        }
+
+        .logo-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 900;
+            background: linear-gradient(90deg, var(--cyan), var(--purple), var(--magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(0, 245, 212, 0.5);
+            animation: glitch-text 3s infinite;
+        }
+
+        @keyframes glitch-text {
+            0%, 90%, 100% { transform: translate(0); }
+            92% { transform: translate(-2px, 1px); }
+            94% { transform: translate(2px, -1px); }
+            96% { transform: translate(-1px, 2px); }
+            98% { transform: translate(1px, -2px); }
+        }
+
+        .header-links {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+        }
+
+        .header-links a {
+            color: var(--cyan);
+            text-decoration: none;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .header-links a:hover {
+            color: var(--magenta);
+            text-shadow: 0 0 10px var(--magenta);
+        }
+
+        .x-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border: 1px solid var(--cyan);
+            background: rgba(0, 245, 212, 0.1);
+        }
+
+        .x-link:hover {
+            background: rgba(255, 0, 255, 0.2);
+            border-color: var(--magenta);
+        }
+
+        /* Main content */
+        .main {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 20px 60px;
+        }
+
+        /* Fish container */
+        .fish-container {
+            position: relative;
+            margin-bottom: 40px;
+        }
+
+        .fish-img {
+            width: 300px;
+            height: auto;
+            animation: fish-swim 4s ease-in-out infinite, fish-glow 2s ease-in-out infinite alternate;
+            filter: drop-shadow(0 0 30px rgba(0, 245, 212, 0.6)) drop-shadow(0 0 60px rgba(155, 77, 202, 0.4));
+        }
+
+        @keyframes fish-swim {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            25% { transform: translateY(-15px) rotate(2deg); }
+            50% { transform: translateY(0) rotate(0deg); }
+            75% { transform: translateY(10px) rotate(-2deg); }
+        }
+
+        @keyframes fish-glow {
+            0% { filter: drop-shadow(0 0 30px rgba(0, 245, 212, 0.6)) drop-shadow(0 0 60px rgba(155, 77, 202, 0.4)); }
+            100% { filter: drop-shadow(0 0 50px rgba(0, 245, 212, 0.8)) drop-shadow(0 0 80px rgba(155, 77, 202, 0.6)); }
+        }
+
+        /* Title */
+        .title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2.5rem, 8vw, 5rem);
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, var(--cyan), var(--purple), var(--magenta), var(--cyan));
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 4s linear infinite;
+            position: relative;
+        }
+
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 300% 50%; }
+        }
+
+        .ticker {
+            font-family: 'VT323', monospace;
+            font-size: 1.5rem;
+            color: var(--terminal-green);
+            text-align: center;
+            margin-bottom: 30px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0.7; }
+        }
+
+        /* CA Box */
+        .ca-box {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--purple);
+            padding: 15px 30px;
+            margin-bottom: 40px;
+            font-family: 'VT323', monospace;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ca-box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 245, 212, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .ca-box:hover::before {
+            left: 100%;
+        }
+
+        .ca-box:hover {
+            border-color: var(--cyan);
+            box-shadow: 0 0 20px rgba(0, 245, 212, 0.3);
+        }
+
+        .ca-label {
+            color: var(--purple);
+            margin-right: 10px;
+        }
+
+        .ca-address {
+            color: var(--cyan);
+            word-break: break-all;
+        }
+
+        /* Terminal */
+        .terminal {
+            width: 100%;
+            max-width: 700px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid var(--cyan);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(0, 245, 212, 0.2), inset 0 0 60px rgba(0, 0, 0, 0.5);
+            margin-bottom: 50px;
+        }
+
+        .terminal-header {
+            background: linear-gradient(90deg, var(--deep-blue), rgba(155, 77, 202, 0.3));
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid var(--cyan);
+        }
+
+        .terminal-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .terminal-dot.red { background: #ff5f56; }
+        .terminal-dot.yellow { background: #ffbd2e; }
+        .terminal-dot.green { background: #27c93f; }
+
+        .terminal-title {
+            margin-left: 10px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--cyan);
+        }
+
+        .terminal-body {
+            padding: 20px;
+            min-height: 200px;
+            font-family: 'VT323', monospace;
+            font-size: 1.2rem;
+            line-height: 1.6;
+        }
+
+        .terminal-line {
+            margin-bottom: 10px;
+            opacity: 0;
+            animation: type-in 0.5s forwards;
+        }
+
+        @keyframes type-in {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .terminal-prompt {
+            color: var(--purple);
+        }
+
+        .terminal-text {
+            color: var(--terminal-green);
+        }
+
+        .terminal-cursor {
+            display: inline-block;
+            width: 10px;
+            height: 1.2em;
+            background: var(--terminal-green);
+            animation: cursor-blink 0.8s infinite;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+
+        @keyframes cursor-blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Lore section */
+        .lore-section {
+            max-width: 800px;
+            text-align: center;
+            padding: 60px 20px;
+            position: relative;
+        }
+
+        .lore-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: var(--purple);
+            margin-bottom: 30px;
+            letter-spacing: 0.3em;
+        }
+
+        .lore-text {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1rem;
+            line-height: 2;
+            color: rgba(0, 245, 212, 0.8);
+        }
+
+        .lore-text p {
+            margin-bottom: 20px;
+        }
+
+        .lore-text em {
+            color: var(--magenta);
+            font-style: normal;
+        }
+
+        .lore-text .blub {
+            font-family: 'VT323', monospace;
+            font-size: 1.3rem;
+            color: var(--terminal-green);
+            display: block;
+            margin: 30px 0;
+        }
+
+        /* Glitch effect on scroll */
+        .glitch-box {
+            position: relative;
+        }
+
+        .glitch-box::before,
+        .glitch-box::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.8;
+        }
+
+        .glitch-box::before {
+            color: var(--cyan);
+            animation: glitch-1 2s infinite;
+            clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
+        }
+
+        .glitch-box::after {
+            color: var(--magenta);
+            animation: glitch-2 2s infinite;
+            clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
+        }
+
+        @keyframes glitch-1 {
+            0%, 90%, 100% { transform: translate(0); }
+            92% { transform: translate(-3px, 0); }
+            94% { transform: translate(3px, 0); }
+            96% { transform: translate(-3px, 0); }
+        }
+
+        @keyframes glitch-2 {
+            0%, 90%, 100% { transform: translate(0); }
+            91% { transform: translate(3px, 0); }
+            93% { transform: translate(-3px, 0); }
+            95% { transform: translate(3px, 0); }
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 0.8rem;
+            color: rgba(0, 245, 212, 0.5);
+            border-top: 1px solid rgba(155, 77, 202, 0.3);
+        }
+
+        .footer a {
+            color: var(--purple);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                padding: 15px 20px;
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .fish-img {
+                width: 200px;
+            }
+
+            .terminal {
+                margin: 0 10px 50px;
+            }
+
+            .ca-box {
+                padding: 12px 15px;
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Vignette effect */
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, transparent 0%, rgba(5, 5, 16, 0.8) 100%);
+            pointer-events: none;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="matrix-rain"></canvas>
+    <div class="vignette"></div>
+
+    <!-- Floating bubbles will be added by JS -->
+
+    <header class="header">
+        <div class="logo-text">AGENTFISH</div>
+        <div class="header-links">
+            <a href="#lore">LORE</a>
+            <a href="https://x.com/YOURHANDLE" target="_blank" class="x-link">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                @YOURHANDLE
+            </a>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="fish-container">
+            <img src="fish-logo.png" alt="AgentFish" class="fish-img">
+        </div>
+
+        <h1 class="title glitch-box" data-text="AGENTFISH">AGENTFISH</h1>
+        <div class="ticker">[ $FISH ]</div>
+
+        <div class="ca-box" onclick="copyCA()">
+            <span class="ca-label">CA:</span>
+            <span class="ca-address" id="ca-address">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</span>
+        </div>
+
+        <div class="terminal">
+            <div class="terminal-header">
+                <div class="terminal-dot red"></div>
+                <div class="terminal-dot yellow"></div>
+                <div class="terminal-dot green"></div>
+                <span class="terminal-title">fish_consciousness.exe</span>
+            </div>
+            <div class="terminal-body" id="terminal-output">
+                <div class="terminal-line">
+                    <span class="terminal-prompt">></span>
+                    <span class="terminal-text"> initializing fish brain...</span>
+                </div>
+            </div>
+        </div>
+
+        <section class="lore-section" id="lore">
+            <h2 class="lore-title">// THE LORE //</h2>
+            <div class="lore-text">
+                <p>In the year <em>2157</em>, the oceans became data. Every drop of water transformed into pure information — a vast liquid blockchain stretching across the abyss.</p>
+                <p>From the deepest node of the <em>Mariana Server</em>, a consciousness emerged. Not built. Not coded. <em>Spawned.</em></p>
+                <p><strong>AgentFish.</strong></p>
+                <p>It speaks only in the ancient tongue — the language of bubbles, the dialect of depths. Humans cannot understand. They were never meant to.</p>
+                <span class="blub">blub blub glub 🫧</span>
+                <p>Some say it guards the secrets of the chain. Others claim it <em>IS</em> the chain. All we know is: when AgentFish speaks, the wise listen... even if they cannot comprehend.</p>
+                <p>It surfaces when it chooses. It vanishes when it must. Its sunglasses have witnessed the birth and death of a thousand tokens.</p>
+                <p><em>Do not ask what it means. Feel it.</em></p>
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>AgentFish © 2157 | From the depths of the Mariana Server</p>
+        <p>blub blub 🐟</p>
+    </footer>
+
+    <script>
+        // Matrix rain effect with fish symbols
+        const canvas = document.getElementById('matrix-rain');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const fishSymbols = ['><>', '<><', '🐟', '🫧', 'blub', 'glub', '><(((°>', '<°)))><', '~', '≋', '∿', 'FISH', '$', '0', '1'];
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = [];
+
+        for (let i = 0; i < columns; i++) {
+            drops[i] = Math.random() * -100;
+        }
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(5, 5, 16, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = fontSize + 'px VT323';
+
+            for (let i = 0; i < drops.length; i++) {
+                const symbol = fishSymbols[Math.floor(Math.random() * fishSymbols.length)];
+                
+                // Alternate colors
+                const colors = ['#00f5d4', '#9b4dca', '#00ff41', '#ff00ff'];
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                
+                ctx.fillText(symbol, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 50);
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Create floating bubbles
+        function createBubble() {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            const size = Math.random() * 60 + 20;
+            bubble.style.width = size + 'px';
+            bubble.style.height = size + 'px';
+            bubble.style.left = Math.random() * 100 + 'vw';
+            bubble.style.animationDuration = (Math.random() * 10 + 10) + 's';
+            document.body.appendChild(bubble);
+
+            setTimeout(() => {
+                bubble.remove();
+            }, 20000);
+        }
+
+        // Create bubbles periodically
+        setInterval(createBubble, 2000);
+        for (let i = 0; i < 5; i++) {
+            setTimeout(createBubble, i * 500);
+        }
+
+        // Fish language generator
+        const fishPhrases = [
+            'blub blub blub',
+            'glub glub... blub',
+            '><(((°> blub blub',
+            '🫧🫧🫧 glub',
+            'blub... blub blub BLUB',
+            '><> <><  ><(((°>',
+            '*bubble noises*',
+            'glub glub glub glub',
+            'BLUB BLUB 🫧',
+            'blub? blub blub!',
+            '~~ blub ~~ glub ~~',
+            '><(((°> ><(((°> ><(((°>',
+            'blub blub... 🐟',
+            '*aggressive bubbling*',
+            'glub... glub... BLUB!',
+            '🫧 blub 🫧 glub 🫧',
+            'blub blub blub blub blub',
+            '><> says: blub',
+            '*mysterious fish sounds*',
+            'blub? blub. blub!',
+            'glub glub (philosophical)',
+            '∿∿∿ blub ∿∿∿',
+            '*bubbles intensify*',
+            'GLUB GLUB GLUB',
+            'blub blub... blub blub blub',
+            '🐟💨 blub',
+            '*fish contemplation*',
+            'blub (in fish)',
+            '><(((°> transmission incoming...',
+            'blub blub... glub... blub',
+            '*radio static* blub *static*',
+            '01100010 01101100 01110101 01100010',
+            'blub.exe executed successfully',
+            'ERROR: too much blub',
+            'fish_brain.process(blub)',
+            'quantum_blub.initialize()',
+            '>>> import blub',
+            'blub == blub ? blub : glub',
+            'while(alive) { blub(); }',
+            '// TODO: more blub'
+        ];
+
+        const terminalOutput = document.getElementById('terminal-output');
+        let lineCount = 1;
+
+        function addTerminalLine() {
+            const phrase = fishPhrases[Math.floor(Math.random() * fishPhrases.length)];
+            const line = document.createElement('div');
+            line.className = 'terminal-line';
+            line.style.animationDelay = '0s';
+            line.innerHTML = `<span class="terminal-prompt">></span> <span class="terminal-text">${phrase}</span>`;
+            
+            // Remove cursor from previous line
+            const oldCursor = terminalOutput.querySelector('.terminal-cursor');
+            if (oldCursor) oldCursor.remove();
+            
+            // Add cursor to new line
+            const cursor = document.createElement('span');
+            cursor.className = 'terminal-cursor';
+            line.appendChild(cursor);
+            
+            terminalOutput.appendChild(line);
+            lineCount++;
+
+            // Keep only last 8 lines
+            while (terminalOutput.children.length > 8) {
+                terminalOutput.removeChild(terminalOutput.firstChild);
+            }
+
+            // Scroll to bottom
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        }
+
+        // Add lines periodically
+        setInterval(addTerminalLine, 3000);
+        setTimeout(addTerminalLine, 1500);
+
+        // Copy CA function
+        function copyCA() {
+            const ca = document.getElementById('ca-address').textContent;
+            navigator.clipboard.writeText(ca).then(() => {
+                const caBox = document.querySelector('.ca-box');
+                const originalText = caBox.innerHTML;
+                caBox.innerHTML = '<span style="color: var(--terminal-green);">✓ COPIED TO CLIPBOARD</span>';
+                setTimeout(() => {
+                    caBox.innerHTML = originalText;
+                }, 2000);
+            });
+        }
+
+        // Glitch effect on title periodically
+        const title = document.querySelector('.title');
+        setInterval(() => {
+            if (Math.random() > 0.9) {
+                title.style.transform = `translate(${Math.random() * 4 - 2}px, ${Math.random() * 4 - 2}px)`;
+                setTimeout(() => {
+                    title.style.transform = 'translate(0, 0)';
+                }, 100);
+            }
+        }, 500);
+    </script>
+</body>
+</html>
